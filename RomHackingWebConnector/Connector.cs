@@ -1,6 +1,6 @@
 ﻿/*
  * Creado por SharpDevelop.
- * Usuario: tetra
+ * Usuario: pikachu240
  * Fecha: 15/05/2017
  * Hora: 14:50
  * Licencia GNU GPL V3
@@ -25,7 +25,7 @@ namespace RomHackingWebConnector
 		
 		
 		public  bool EstaConectado{ get; protected set; }
-		
+		bool autologinHecho;
 		public event EventHandler Conectado;
 		public event EventHandler Desconectado;
 		public Connector(Uri webRomHacking)
@@ -33,15 +33,15 @@ namespace RomHackingWebConnector
 			WindowsFormsHost winForms;
 			winForms = new WindowsFormsHost();
 			WbLogin = new System.Windows.Forms.WebBrowser();
+			autologinHecho=false;
+			WebRomHacking = webRomHacking;
 			winForms.Child = WbLogin;
-	    	this.AddChild(winForms);
+			
 			WbLogin.ScriptErrorsSuppressed = true;
 			WbLogin.DocumentCompleted += PaginaCargada;
-			WebRomHacking = webRomHacking;
+			this.AddChild(winForms);
 			Hide();
-			WbLogin.Navigate(webRomHacking);
-			imgPerfil=null;
-			EstaConectado=false;
+			Entrar();//hago autologin			
 			
 		}
 		public virtual Uri PerfilUsuario{
@@ -69,27 +69,44 @@ namespace RomHackingWebConnector
 		}
 		public void  Show()
 		{
+			Visibility =System.Windows.Visibility.Visible;
 			WbLogin.Show();
 		}
 		void PaginaCargada(object sender, System.Windows.Forms.WebBrowserDocumentCompletedEventArgs e)
 		{
+			bool estadoLoginAnterior;
 			
-			PaginaCargada();
-			
+			OnPaginaCargada();
+			//compruebo como está el login
+			estadoLoginAnterior=EstaConectado;
 			EstaConectado=ComprobarQueEstaConectado();
 			
-			if(Conectado!=null&&EstaConectado)
-				Conectado(this,new EventArgs());
+			if(estadoLoginAnterior!=EstaConectado){
+				//si la nueva pagina tiene el usuario conectado o desconectado informo del cambio producido
+				if(Conectado!=null&&EstaConectado)
+					Conectado(this,new EventArgs());
+				
+				else if(Desconectado!=null&&!EstaConectado)
+					Desconectado(this,new EventArgs());
+				
+				
+			}else if(!autologinHecho)
+			{
+				autologinHecho=true;
+				Hide();
+			}
 			
-			else if(Desconectado!=null&&!EstaConectado)
-				Desconectado(this,new EventArgs());
 		}
-		
-		protected abstract void PaginaCargada();
+		/// <summary>
+		/// Se llama cuando la pagina esta cargada antes de comprobar el estado del login
+		/// </summary>
+		protected virtual void OnPaginaCargada()
+		{}
 		
 		public void Salir()
 		{
 			if (EstaConectado) {
+				//no hace falta que este visible porque la pagina ya está cargada y se puede llamar a la función salir sin estar visible
 				SalirForo();
 				Hide();
 				//el usuario quizas rechaza algun mensaje lanzado por la web para evitar que se desconecte y al final no se desconecta
@@ -102,12 +119,13 @@ namespace RomHackingWebConnector
 		public void Entrar()
 		{
 			if (!EstaConectado) {
-				Visibility =System.Windows.Visibility.Visible; 
+				//para que funcione el navegador nevesito que esté visible
+				Visibility =System.Windows.Visibility.Visible;
 				WbLogin.Navigate(WebRomHacking);
 			}
 		}
 		
-		protected System.Windows.Forms.HtmlDocument GetHtmlDocument(string html)
+		protected static System.Windows.Forms.HtmlDocument GetHtmlDocument(string html)
 		{//sacado de http://stackoverflow.com/questions/4935446/string-to-htmldocument
 			System.Windows.Forms.WebBrowser browser = new System.Windows.Forms.WebBrowser();
 			browser.ScriptErrorsSuppressed = true;

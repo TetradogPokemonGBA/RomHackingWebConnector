@@ -1,6 +1,6 @@
 ﻿/*
  * Creado por SharpDevelop.
- * Usuario: tetra
+ * Usuario: pikachu240
  * Fecha: 15/05/2017
  * Hora: 14:17
  * Licencia GNU GPL V3
@@ -30,15 +30,31 @@ namespace RomHackingWebConnector
 		const string ENCONTRARNOMBREUSUARIO = "/u-";
 		const string ENCONTRARIMGPERFIL = "profilepic";
 		
-		
+		bool mostraPaginaAlUsuario;
 
 		public WahackConnector():base(new Uri(WEB))
 		{
+			mostraPaginaAlUsuario=false;
 			InitializeComponent();
-			
+			base.Conectado+=(s,e)=>{
+				if(mostraPaginaAlUsuario)
+					Hide();
+			};
+			base.Desconectado+=(s,e)=>{
+				if(mostraPaginaAlUsuario)
+					Show();
+			};
 
 		}
 
+		public bool MostraPaginaAlUsuario {
+			get {
+				return mostraPaginaAlUsuario;
+			}
+			set {
+				mostraPaginaAlUsuario = value;
+			}
+		}
 		public override Uri PerfilUsuario
 		{
 			get{
@@ -81,18 +97,7 @@ namespace RomHackingWebConnector
 
 		
 
-		protected	override void PaginaCargada()
-		{
-			EstaConectado = ComprobarQueEstaConectado();
-			
-			if (EstaConectado)
-				Hide();
-			else
-				Show();
-			
-		}
-
-		protected override void SalirForo()
+    	protected override void SalirForo()
 		{
 			WbLogin.Document.GetElementById("salir").InvokeMember("click");
 		}
